@@ -16,28 +16,28 @@ module avoid_it_top(
     output wire com6,
     output wire com7,
     output wire com8,
+
+    // LCD outputs
+    output wire LCD_E,
+    output wire LCD_RS,
+    output wire LCD_RW,
+    output wire [7:0] LCD_DATA,
     // LEDs
     output wire LED_RED,
     output wire LED_GREEN
 );
-
+    // ---------------------------------------------------------
+    // 1) Wires between game module & game_event
+    // ---------------------------------------------------------
     wire collision_detected_sig;
     wire game_cleared_sig;
     wire run_game_sig;
 
-    // Instantiate game_event
-    game_event event_inst (
-        .clk               (clk),
-        .rst               (rst),
-        .key_star          (key_star),
-        .collision_detected(collision_detected_sig),
-        .game_cleared      (game_cleared_sig),
-        .run_game          (run_game_sig),
-        .LED_RED           (LED_RED),
-        .LED_GREEN         (LED_GREEN)
-    );
-
-    // Instantiate game_2 (modified to accept run_game input)
+    // ---------------------------------------------------------
+    // 2) Instantiate the game logic (game_2 or game_3)
+    //    - Sends out collision_detected & game_cleared
+    //    - Accepts run_game as input to control updates
+    // ---------------------------------------------------------
     game_2 game_inst (
         .clk               (clk),
         .rst               (rst),
@@ -60,4 +60,24 @@ module avoid_it_top(
         .com8(com8)
     );
 
+    // ---------------------------------------------------------
+    // 3) Instantiate the game_event module
+    //    - Observes collision_detected_sig, game_cleared_sig
+    //    - Controls run_game_sig, LEDs, and multiplexes LCDs
+    // ---------------------------------------------------------
+    game_event event_inst (
+        .clk                (clk),
+        .rst                (rst),
+        .key_star           (key_star),
+        .collision_detected (collision_detected_sig),
+        .game_clear         (game_cleared_sig),   // note: in your code it's `game_clear`
+        .LCD_E              (LCD_E),
+        .LCD_RS             (LCD_RS),
+        .LCD_RW             (LCD_RW),
+        .LCD_DATA           (LCD_DATA),
+        .led_red            (LED_RED),
+        .led_green          (LED_GREEN)
+    );
+
+    
 endmodule
