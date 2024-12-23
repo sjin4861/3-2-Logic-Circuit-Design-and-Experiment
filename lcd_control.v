@@ -2,7 +2,7 @@ module lcd_control(
     input wire clk,    // 1kHz
     input wire rst,
     input wire [1:0] game_state,
-    input wire [3:0] block_remain,  // 추가
+    input wire [3:0] block_remain,  
     output wire LCD_E,
     output wire LCD_RS,
     output wire LCD_RW,
@@ -27,6 +27,7 @@ reg [15:0] cnt;
 reg lcd_rs_reg, lcd_rw_reg;
 reg [7:0] lcd_data_reg;
 
+// "직전 game_state" 저장
 reg [1:0] prev_game_state;
 
 //----------------------------------------------------------
@@ -45,49 +46,90 @@ end
 always @(posedge clk or posedge rst) begin
     if(rst) begin
         state <= ST_INIT1;
-        cnt   <= 0;
+        cnt   <= 16'd0;
     end else begin
         case(state)
+            //-----------------------------------------
+            // 초기화 순서
+            //-----------------------------------------
             ST_INIT1: begin
                 if(cnt==10) begin
                     state <= ST_INIT2;
-                    cnt<=0;
-                end else cnt<=cnt+1;
+                    cnt <= 0;
+                end else begin
+                    cnt <= cnt + 1;
+                end
             end
+
             ST_INIT2: begin
                 if(cnt==10) begin
                     state <= ST_INIT3;
-                    cnt<=0;
-                end else cnt<=cnt+1;
+                    cnt <= 0;
+                end else begin
+                    cnt <= cnt + 1;
+                end
             end
+
             ST_INIT3: begin
                 if(cnt==10) begin
                     state <= ST_LINE1;
-                    cnt<=0;
-                end else cnt<=cnt+1;
-            end
-            ST_LINE1: begin
-                if(cnt>=16) begin
-                    state <= ST_LINE2;
-                    cnt<=0;
-                end else cnt<=cnt+1;
-            end
-            ST_LINE2: begin
-                if(cnt>=16) begin
-                    state <= ST_IDLE;
-                    cnt<=0;
-                end else cnt<=cnt+1;
-            end
-            ST_IDLE: begin
-                // 상태 바뀌면 라인 재출력
-                if(prev_game_state!=game_state) begin
-                    state<=ST_LINE1;
-                    cnt<=0;
+                    cnt <= 0;
+                end else begin
+                    cnt <= cnt + 1;
                 end
             end
+
+            //-----------------------------------------
+            // 라인1 → 라인2 순차 출력
+            //-----------------------------------------
+            ST_LINE1: begin
+                if(cnt >= 16) begin
+                    // 라인1 출력 끝나면 라인2로
+                    state <= ST_LINE2;
+                    cnt <= 0;
+                end else begin
+                    cnt <= cnt + 1;
+                end
+            end
+
+            ST_LINE2: begin
+                if(cnt >= 16) begin
+                    // 라인2 출력 끝나면 IDLE로
+                    state <= ST_IDLE;
+                    cnt <= 0;
+                end else begin
+                    cnt <= cnt + 1;
+                end
+            end
+
+            //-----------------------------------------
+            // ST_IDLE
+            //-----------------------------------------
+            ST_IDLE: begin
+                // 1) 만약 state가 바뀌었으면 즉시 재출력
+                if(prev_game_state != game_state) begin
+                    state <= ST_LINE1;
+                    cnt <= 0;
+                end
+                // 2) OR S_CONTINUE인 동안 1초마다 갱신
+                else if(game_state == 2'b01) begin
+                    if(cnt == 999) begin  
+                        // 1초마다 다시 라인 출력
+                        state <= ST_LINE1;
+                        cnt <= 0;
+                    end else begin
+                        cnt <= cnt + 1;
+                    end
+                end
+                // 3) 그 외에는 계속 대기
+                else begin
+                    state <= ST_IDLE;
+                end
+            end
+
             default: begin
-                state<=ST_IDLE;
-                cnt<=0;
+                state <= ST_IDLE;
+                cnt <= 0;
             end
         endcase
     end
@@ -108,32 +150,33 @@ always @(posedge clk or posedge rst) begin
         lcd_data_reg <= 8'b00000000;
 
         case(state)
-            // 초기화 커맨드
+            // 초기화 커맨드들
             ST_INIT1: begin
-                lcd_rs_reg<=0;
-                lcd_rw_reg<=0;
-                lcd_data_reg<=8'b00111100; // FUNCTION_SET (8bit, 2Line, 5x8)
+                lcd_rs_reg <= 0;
+                lcd_rw_reg <= 0;
+                lcd_data_reg <= 8'b00111100; // FUNCTION_SET
             end
             ST_INIT2: begin
-                lcd_rs_reg<=0;
-                lcd_rw_reg<=0;
-                lcd_data_reg<=8'b00001100; // DISP_ONOFF (Display ON)
+                lcd_rs_reg <= 0;
+                lcd_rw_reg <= 0;
+                lcd_data_reg <= 8'b00001100; // DISP_ONOFF
             end
             ST_INIT3: begin
-                lcd_rs_reg<=0;
-                lcd_rw_reg<=0;
-                lcd_data_reg<=8'b00000110; // ENTRY_MODE
+                lcd_rs_reg <= 0;
+                lcd_rw_reg <= 0;
+                lcd_data_reg <= 8'b00000110; // ENTRY_MODE
             end
 
-            // 라인1: state에 따른 문구
+            // 라인1 출력
             ST_LINE1: begin
-                lcd_rw_reg<=0;
-                if(cnt==0) begin
-                    lcd_rs_reg<=0;
-                    lcd_data_reg<=8'b10000000; // 커서 라인1(0x80)
+                lcd_rw_reg <= 0;
+                if(cnt == 0) begin
+                    // 커서(Line1)
+                    lcd_rs_reg <= 0;
+                    lcd_data_reg <= 8'b10000000; 
                 end else begin
-                    lcd_rs_reg<=1;
-                    // game_state 별 라인1 문구
+                    // 실제 문자들
+                    lcd_rs_reg <= 1;
                     case(game_state)
                         2'b00: begin // S_MAIN => "AVOID IT!"
                             case(cnt)
@@ -199,14 +242,16 @@ always @(posedge clk or posedge rst) begin
                 end
             end
 
-            // 라인2: state에 따른 문구
+            // 라인2 출력
             ST_LINE2: begin
-                lcd_rw_reg<=0;
-                if(cnt==0) begin
-                    lcd_rs_reg<=0;
-                    lcd_data_reg<=8'b11000000; // 커서 라인2(0xC0)
+                lcd_rw_reg <= 0;
+                if(cnt == 0) begin
+                    // 커서(Line2)
+                    lcd_rs_reg <= 0;
+                    lcd_data_reg<=8'b11000000; // 0xC0
                 end else begin
-                    lcd_rs_reg<=1;
+                    // 실제 문자들
+                    lcd_rs_reg <= 1;
                     case(game_state)
                         2'b00: begin // MAIN => "* start"
                             case(cnt)
@@ -220,9 +265,7 @@ always @(posedge clk or posedge rst) begin
                                 default: lcd_data_reg<=" ";
                             endcase
                         end
-
-                        // (추가) S_CONTINUE => "Block Remain : XX"
-                        2'b01: begin
+                        2'b01: begin // S_CONTINUE => "Block Remain : XX"
                             case(cnt)
                                 1:  lcd_data_reg<="B";
                                 2:  lcd_data_reg<="l";
@@ -239,12 +282,11 @@ always @(posedge clk or posedge rst) begin
                                 13: lcd_data_reg<=":";
                                 14: lcd_data_reg<=" ";
                                 // block_remain 두 자리 출력
-                                15: lcd_data_reg <= ((block_remain / 10) + 8'd48); 
+                                15: lcd_data_reg <= ((block_remain / 10) + 8'd48);
                                 16: lcd_data_reg <= ((block_remain % 10) + 8'd48);
                                 default: lcd_data_reg<=" ";
                             endcase
                         end
-
                         2'b10: begin // OVER => "Try again?"
                             case(cnt)
                                 1:  lcd_data_reg<="T";
@@ -279,7 +321,9 @@ always @(posedge clk or posedge rst) begin
                 end
             end
 
-            default: ;
+            default: /* ST_IDLE etc. */ begin
+                // 아무 것도 하지 않음
+            end
         endcase
     end
 end
