@@ -13,7 +13,7 @@ Text LCD, 키패드, 8 Array 7-Segment, PIEZO, Full Color LED 등 다양한 하�
 - 7-Segment : 블럭들을 표현하여 실제 게임 진행 상황 출력
 
 이 프로젝트의 시연 영상을 보려면 아래 링크를 클릭하세요:
-[시연 영상](https://drive.google.com/uc?id=1LmKPTR3JB0baxsj2fzHh3svWiITQ9oOU&export=download)
+[시연 영상](https://drive.google.com/file/d/1LmKPTR3JB0baxsj2fzHh3svWiITQ9oOU/view?usp=sharing)
 
 ---
 
