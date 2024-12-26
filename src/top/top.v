@@ -19,7 +19,8 @@ module top(
     output wire LCD_E,
     output wire LCD_RS,
     output wire LCD_RW,
-    output wire [7:0] LCD_DATA
+    output wire [7:0] LCD_DATA,
+    output wire piezo_out
 );
 
 //------------------------------------------------
@@ -49,7 +50,7 @@ wire [1:0] current_state;
 wire led_color_red;
 wire led_color_green;
 
-game_event u_game_event (
+game_event_with_piezo u_game_event (
     .clk                (clk_1khz),
     .rst                (rst),
     .key_star_rise      (key_star_rise),
@@ -57,7 +58,8 @@ game_event u_game_event (
     .game_clear         (game_clear),
     .led_red            (led_color_red),    // 리팩토링 후 이름 변경
     .led_green          (led_color_green),  // 리팩토링 후 이름 변경
-    .current_state      (current_state)
+    .current_state      (current_state),
+    .piezo_out          (piezo_out)
 );
 
 //------------------------------------------------
