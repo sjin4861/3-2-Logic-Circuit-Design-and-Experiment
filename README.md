@@ -1,4 +1,5 @@
 # PNU 논리회로설계및실험 5조 - Avoid_It (7-segment 8-array를 이용한 장애물 피하기 게임)
+![front](https://github.com/user-attachments/assets/40061334-2252-4837-97b5-ce1570369d32)
 
 
 ## 프로젝트 개요
@@ -12,7 +13,7 @@ Text LCD, 키패드, 8 Array 7-Segment, PIEZO, Full Color LED 등 다양한 하�
 - 7-Segment : 블럭들을 표현하여 실제 게임 진행 상황 출력
 
 이 프로젝트의 시연 영상을 보려면 아래 링크를 클릭하세요:
-[시연 영상]()
+[시연 영상](https://drive.google.com/uc?id=1LmKPTR3JB0baxsj2fzHh3svWiITQ9oOU&export=download)
 
 ---
 
